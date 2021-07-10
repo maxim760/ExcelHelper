@@ -2,7 +2,7 @@ import { csv } from "d3-fetch";
 import { DSVRowArray } from "d3-dsv";
 import { useEffect, useState } from "react";
 
-const banned = ["для", "около", "в", "по", "где", "на"];
+const banned = ["для", "около", "в", "по", "где", "на", "ы", "купить"];
 
 type ICategs = string[]
 type ITransformedMap = Map<string, {
@@ -36,19 +36,12 @@ const match = (data:DSVRowArray<string>, map: ITransformedMap) => {
   const key = data.columns[0];
   data.forEach((item) => {
     const queryToCateg = item[key]!;
-    // for (let key of keys) {
-    //   if (queryToCateg.match(map.get(key).regex)) {
-    //     pushToResult({ key, queryToCateg });
-    //     return;
-    //   }
-    // }
-    // const regex = RegExp(queryToCateg.trim().replaceAll(" ", "(.)+"), "gi");
-    // for (let key of keys) {
-    //   if (key.match(regex)) {
-    //     pushToResult({ key, queryToCateg });
-    //     return;
-    //   }
-    // }
+    for (let key of keys) {
+      if (queryToCateg.match(map.get(key)!.regex)) {
+        pushToResult({ key, queryToCateg });
+        return;
+      }
+    }
     for (let key of keys) {
       let count = 0;
       const wordsKeys = key
