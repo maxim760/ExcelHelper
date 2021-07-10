@@ -20,10 +20,12 @@ const transform = (data: DSVRowArray<string>, size: number = 1) => {
       categs.push(d[columns[i]]!);
     }
     const query = d[columns[size]]!.trim();
+    // const strForRegex = query
+    const strForRegex = query.length <= 6 ? query : query.slice(0, -1).trim()
     map.set(query, {
       categs,
       // regex: RegExp(query, "ig"),
-      regex: RegExp(query.replace(" ", "(.)+"), "ig"),
+      regex: RegExp(strForRegex.replace(" ", "(.)+") , "ig"),
     });
   });
   return map;
@@ -115,7 +117,7 @@ const match = (data: DSVRowArray<string>, map: ITransformedMap) => {
         return;
       }
     }
-    pushToResult({ queryToCateg });
+    // pushToResult({ queryToCateg });
   });
   return resultArray;
 };
@@ -143,6 +145,5 @@ export const getCsvData: (arg: IUseDataProps) => Promise<IScv> = async (
   const csvData = toCsv(matched, columns);
   (<any>window).matched = matched;
   (<any>window).fina = final;
-  await window.navigator.clipboard.writeText(csvData);
   return csvData;
 };

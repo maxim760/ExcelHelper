@@ -25,6 +25,7 @@ export const App = () => {
     setIsCopied(true);
   }, [csvData]);
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    setCsvData("")
     setCsvStatus(STATUSES.LOADING);
     e.preventDefault();
     e.currentTarget.reset();
