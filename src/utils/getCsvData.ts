@@ -1,14 +1,16 @@
 import { csv } from "d3-fetch";
 import { DSVRowArray } from "d3-dsv";
-import { useEffect, useState } from "react";
 
-const banned = ["для", "около", "в", "по", "где", "на", "ы", "купить"];
+const banned = ["для", "около", "в", "по", "где", "на", "купить", "цена"];
 
-type ICategs = string[]
-type ITransformedMap = Map<string, {
-  categs: ICategs,
-  regex: RegExp
-}>
+type ICategs = string[];
+type ITransformedMap = Map<
+  string,
+  {
+    categs: ICategs;
+    regex: RegExp;
+  }
+>;
 const transform = (data: DSVRowArray<string>, size: number = 1) => {
   const map: ITransformedMap = new Map();
   const { columns } = data;
@@ -20,17 +22,77 @@ const transform = (data: DSVRowArray<string>, size: number = 1) => {
     const query = d[columns[size]]!.trim();
     map.set(query, {
       categs,
-      regex: RegExp(query.replaceAll(" ", "(.)+"), "ig"),
+      // regex: RegExp(query, "ig"),
+      regex: RegExp(query.replace(" ", "(.)+"), "ig"),
     });
   });
   return map;
 };
-type IFinalCsvArray = string[][]
-const match = (data:DSVRowArray<string>, map: ITransformedMap) => {
-  const keys = Array.from(map.keys())
+
+type IFnPushMatching = (arg: {
+  key?: string | undefined;
+  queryToCateg: string;
+}) => void;
+
+const isMatched = (word1: string, word2: string, len: number) => {
+  for (let i = 0; i < len; i++) {
+    if (word1[i] !== word2[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+type IFinalCsvArray = string[][];
+
+type ICheckMatch = {
+  wordForMatching: string;
+  phrase: string;
+};
+const toFilteredWords = (str: string) =>
+  str.split(" ").filter((word) => !banned.includes(word) && word.length > 1);
+
+const checkMatching = ({ wordForMatching, phrase }: ICheckMatch) => {
+  const words1 = toFilteredWords(wordForMatching);
+  const words2 = toFilteredWords(phrase);
+  const [minArray, maxArray] =
+    words1.length > words2.length ? [words2, words1] : [words1, words2];
+  const div = maxArray.length / minArray.length;
+  if ((minArray.length <= 2 && div > 2) || div >= 3) {
+    return false;
+  }
+  // фразы совпадают, если совпало больше половины слов
+  // но если в 1 фразе мало слов, а вдругой много, то более строгая валидация
+  const isSimilarStr = (count: number) =>
+    div > 2 ? count >= minArray.length * 0.75 : count > minArray.length * 0.5;
+  let count = 0;
+
+  for (let word1 of minArray) {
+    for (let word2 of maxArray) {
+      const l1 = word1.length;
+      const l2 = word2.length;
+      const diff = Math.abs(l1 - l2);
+      if (diff > 2 || l1 < 4 || l2 < 4) {
+        continue;
+      }
+      const len = Math.max(Math.max(l1, l2) - 2, 4);
+      if (isMatched(word1, word2, len)) {
+        count++;
+        break;
+      }
+    }
+  }
+  if (isSimilarStr(count)) {
+    return true;
+  }
+  return false;
+};
+
+const match = (data: DSVRowArray<string>, map: ITransformedMap) => {
+  const keys = Array.from(map.keys());
   const resultArray: IFinalCsvArray = [];
-  const pushToResult = ({ key, queryToCateg }: { key?: string, queryToCateg: string }) => {
-    const item = key ? [queryToCateg, ...map.get(key)!.categs] : [queryToCateg] 
+  const pushToResult: IFnPushMatching = ({ key, queryToCateg }) => {
+    const item = key ? [queryToCateg, ...map.get(key)!.categs] : [queryToCateg];
     resultArray.push(item);
   };
   const key = data.columns[0];
@@ -43,29 +105,12 @@ const match = (data:DSVRowArray<string>, map: ITransformedMap) => {
       }
     }
     for (let key of keys) {
-      let count = 0;
-      const wordsKeys = key
-        .split(" ")
-        .filter((word) => !banned.includes(word) && word.length > 1);
-      const wordsQuery = queryToCateg
-        .split(" ")
-        .filter((word) => !banned.includes(word) && word.length > 1);
-      for (let word of wordsKeys) {
-        if (!queryToCateg.includes(word)) {
-          count++;
-        }
-      }
-      if (count < wordsKeys.length / 2) {
-        pushToResult({ key, queryToCateg });
-        return;
-      }
-      count = 0;
-      for (let word of wordsQuery) {
-        if (!key.includes(word)) {
-          count++;
-        }
-      }
-      if (count < wordsQuery.length / 2) {
+      if (
+        checkMatching({
+          wordForMatching: key.toLowerCase(),
+          phrase: queryToCateg.toLowerCase(),
+        })
+      ) {
         pushToResult({ key, queryToCateg });
         return;
       }
@@ -87,20 +132,17 @@ export type IUseDataProps = {
   size: number;
 };
 
-type IScv = string
-export const getCsvData: (arg: IUseDataProps) => Promise<IScv> = async ({
-  initUrl,
-  finalUrl,
-  size = 1,
-} = {} as IUseDataProps) => {
-      const [init, final] = await Promise.all([
-        csv(initUrl),
-        csv(finalUrl),
-      ]);
-      const transformed = transform(init, size);
-      const matched = match(final, transformed);
-      const columns = [final.columns[0], ...init.columns.slice(0, size)];
-      const csvData = toCsv(matched, columns);
-      await window.navigator.clipboard.writeText(csvData);
+type IScv = string;
+export const getCsvData: (arg: IUseDataProps) => Promise<IScv> = async (
+  { initUrl, finalUrl, size = 1 } = {} as IUseDataProps
+) => {
+  const [init, final] = await Promise.all([csv(initUrl), csv(finalUrl)]);
+  const transformed = transform(init, size);
+  const matched = match(final, transformed);
+  const columns = [final.columns[0], ...init.columns.slice(0, size)];
+  const csvData = toCsv(matched, columns);
+  (<any>window).matched = matched;
+  (<any>window).fina = final;
+  await window.navigator.clipboard.writeText(csvData);
   return csvData;
 };
