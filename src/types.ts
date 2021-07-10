@@ -1,0 +1,6 @@
+export enum STATUSES {
+  LOADING = "LOADING",
+  ERROR = "ERROR",
+  SUCCESS = "SUCCESS",
+  NONE = "NONE"
+}

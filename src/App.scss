@@ -1,0 +1,50 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 60px;
+  padding: 10px;
+  align-items: center;
+  width: 100%;
+  & > * + * {
+    margin-top: 20px;
+  }
+}
+
+.form__files {
+  display: flex;
+  flex-direction: column;
+  padding: 9px 15px;
+  border-radius: 15px;
+  border: 1px solid blue;
+}
+
+.form__file-label {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  & + & {
+    margin-top: 20px;
+  }
+  span {
+    margin-bottom: 5px;
+  }
+}
+.csv-text-wrapper {
+  margin: 0 auto;
+  width: 300px;
+}
+.csv-text {
+  margin-top: 5px;
+  border-radius: 10px;
+  width: 300px;
+  padding: 3px 10px;
+  height: 150px;
+  overflow-y: scroll;
+  white-space: pre-wrap;
+  word-break: break-all;
+  resize: none;
+}
+
+.csv-error {
+  color: rgb(214, 18, 18);
+}
