@@ -1,7 +1,7 @@
 self.onmessage = async (e) => {
   try {
-    const csvData = await getCsvData(e.data)
-    postMessage({type: "csv", message: csvData})
+    const {data, empty, total} = await getCsvData(e.data)
+    postMessage({type: "csv", empty,total, message: data})
   } catch (e) {
     postMessage({type: "error", message: `Ошибка при обработке csv файла`})
   }
@@ -82,6 +82,7 @@ const checkMatching = ({ wordForMatching, phrase }) => {
 const match = (data, map, updateProgressInfo) => {
   const dataLength = data.length
   const keys = Array.from(map.keys());
+  let emptyCount = 0;
   const resultArray = [];
   const pushToResult = ({ key, queryToCateg }) => {
     const item = key ? [queryToCateg, ...map.get(key).categs] : [queryToCateg];
@@ -108,9 +109,10 @@ const match = (data, map, updateProgressInfo) => {
         return;
       }
     }
+    emptyCount++
     pushToResult({ queryToCateg });
   });
-  return resultArray;
+  return {result:resultArray, empty: emptyCount};
 };
 
 const toCsv = (array, columns) => {
@@ -129,9 +131,9 @@ async function getCsvData({ initObj, finalObj, size = 1 } = {}) {
   postMessage({type: "processing", message: "Начало обрабоки исходного файла"})
   const transformed = transform(initObj, size);
   postMessage({type: "processing", message: "Исходный файл проанализирован. Заполнение финального файла"})
-  const matched = match(finalObj, transformed, updateProgressInfo);
+  const {result, empty} = match(finalObj, transformed, updateProgressInfo);
   const columns = [finalObj.columns[0], ...initObj.columns.slice(0, size)];
   postMessage({type: "processing", message: "Всё готово. Приведение к csv формату"})
-  const csvData = toCsv(matched, columns);
-  return csvData;
+  const csvData = toCsv(result, columns);
+  return {data: csvData, empty, total: result.length };
 }

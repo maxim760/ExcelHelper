@@ -16,10 +16,12 @@ export const App = () => {
   const { file: finalFile, input: finalInputFile } = useFile(csvFileOptions);
   const [countCols, onChangeCountCols, { reset: resetCount }] = useChange("");
   const [csvData, setCsvData] = useState("");
+  const [csvResultPercent, setCsvResultPercent] = useState<null | number>(null);
   const [progressCsv, setProgressCsv] = useState<number>(0);
   const [isCopied, setIsCopied] = useState(false);
   const {
     isLoading,
+    isSuccess,
     isError,
     statusMessage,
     setStatus: setCsvStatus,
@@ -28,17 +30,22 @@ export const App = () => {
   const csvWorker = useMemo(() => new Worker("./workers/csv.js"), []);
   useEffect(() => {
     if (!(finalFile || initFile || countCols)) {
+      setCsvResultPercent(null);
       setCsvStatus(STATUSES.NONE);
       setCsvData("");
     }
   }, [finalFile, initFile, countCols]);
   useEffect(() => {
     console.log("eto worker", csvWorker);
-    csvWorker.onmessage = ({ data: { type, message } }: MessageEvent) => {
+    csvWorker.onmessage = ({
+      data: { type, message, empty, total },
+    }: MessageEvent) => {
       switch (type) {
         case "csv":
+          const statusMsg = `Пустых строк - ${empty}`;
+          setCsvResultPercent((total - empty) / total);
           setCsvData(message);
-          setCsvStatus(STATUSES.SUCCESS);
+          setCsvStatus(STATUSES.SUCCESS, statusMsg);
           setProgressCsv(0);
           break;
         case "error":
@@ -148,9 +155,14 @@ export const App = () => {
         {isLoading && !!progressCsv && (
           <>
             <div className="loading-info">
-              {statusMessage
-                ? <><span>Идёт загрузка:</span> <span className="detail-info">{ statusMessage }</span></>
-                : "Идёт загрузка..."}
+              {statusMessage ? (
+                <>
+                  <span>Идёт загрузка:</span>{" "}
+                  <span className="detail-info">{statusMessage}</span>
+                </>
+              ) : (
+                "Идёт загрузка..."
+              )}
             </div>
             <CircularLoader
               radius={60}
@@ -169,6 +181,17 @@ export const App = () => {
               Скопировать
             </button>
             <textarea className="csv-text" readOnly defaultValue={csvData} />
+            {isSuccess && (
+              <>
+                <p className="csv-info">{statusMessage}</p>
+                {csvResultPercent && (
+                  <p className="csv-info">
+                    Процент совпадения -{" "}
+                    <b>{percentFormat(csvResultPercent, 3)}</b>
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
