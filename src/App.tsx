@@ -1,18 +1,61 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
+import { csv } from "d3-fetch";
 import "./App.scss";
 import { useChange } from "./hooks/useChange";
 import { useFile } from "./hooks/useFile";
 import { STATUSES } from "./types";
-import { getCsvData } from "./utils/getCsvData";
+import { percentFormat } from "./utils/percentFormat";
+import { CircularLoader } from "./components/CircularLoader";
+import { useStatus } from "./hooks/useStatus";
+import { InfinityLoader } from "./components/InfinityLoader";
 
+// todo - перенести код в воркер и добавить проценты
 const csvFileOptions = { accept: ".csv, text/csv", required: true };
 export const App = () => {
   const { file: initFile, input: initInputFile } = useFile(csvFileOptions);
   const { file: finalFile, input: finalInputFile } = useFile(csvFileOptions);
   const [countCols, onChangeCountCols, { reset: resetCount }] = useChange("");
   const [csvData, setCsvData] = useState("");
+  const [progressCsv, setProgressCsv] = useState<number>(0);
   const [isCopied, setIsCopied] = useState(false);
-  const [csvStatus, setCsvStatus] = useState(STATUSES.NONE);
+  const {
+    isLoading,
+    isError,
+    statusMessage,
+    setStatus: setCsvStatus,
+    updateMessage: updateCsvMessage,
+  } = useStatus(STATUSES.NONE);
+  const csvWorker = useMemo(() => new Worker("./workers/csv.js"), []);
+  useEffect(() => {
+    if (!(finalFile || initFile || countCols)) {
+      setCsvStatus(STATUSES.NONE);
+      setCsvData("");
+    }
+  }, [finalFile, initFile, countCols]);
+  useEffect(() => {
+    console.log("eto worker", csvWorker);
+    csvWorker.onmessage = ({ data: { type, message } }: MessageEvent) => {
+      switch (type) {
+        case "csv":
+          setCsvData(message);
+          setCsvStatus(STATUSES.SUCCESS);
+          setProgressCsv(0);
+          break;
+        case "error":
+          setCsvData("");
+          setCsvStatus(STATUSES.ERROR, message);
+          setProgressCsv(0);
+          break;
+        case "progress":
+          setProgressCsv(message);
+          break;
+        case "processing":
+          updateCsvMessage(message);
+          break;
+      }
+    };
+  }, [csvWorker]);
+
   useEffect(() => {
     if (isCopied) {
       setTimeout(() => {
@@ -24,21 +67,27 @@ export const App = () => {
     window.navigator.clipboard.writeText(csvData);
     setIsCopied(true);
   }, [csvData]);
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    setCsvData("")
+    setCsvData("");
     setCsvStatus(STATUSES.LOADING);
     e.preventDefault();
     e.currentTarget.reset();
     resetCount();
+    console.log("on submit");
     try {
-      const csv = await getCsvData({
-        initUrl: initFile!.url,
-        finalUrl: finalFile!.url,
+      console.log("post message");
+      const [initObj, finalObj] = await Promise.all([
+        csv(initFile!.url),
+        csv(finalFile!.url),
+      ]);
+      csvWorker.postMessage({
+        initObj,
+        finalObj,
         size: +countCols,
       });
-      setCsvStatus(STATUSES.SUCCESS);
-      setCsvData(csv);
     } catch (error) {
+      console.log("err");
       setCsvStatus(STATUSES.ERROR);
     }
   };
@@ -48,7 +97,7 @@ export const App = () => {
         <div
           style={{
             backgroundColor: "rgba(0,0,0,0.2)",
-            position: "absolute",
+            position: "fixed",
             width: "100%",
             padding: "20px",
             fontSize: "1.2em",
@@ -60,7 +109,7 @@ export const App = () => {
           Скопировано
         </div>
       )}
-      <form className="form" onSubmit={onSubmit}>
+      <form className="app-half form" onSubmit={onSubmit}>
         <div className="form__files">
           <label className="form__file-label">
             <span>Исходный файл</span>
@@ -72,8 +121,8 @@ export const App = () => {
             <input {...finalInputFile} />
           </label>
         </div>
-        <label>
-          <span>Кол-во строк с типами</span>
+        <label className="form__count-label">
+          <span>Кол-во столбцов с типами:</span>
           <input
             required
             onChange={onChangeCountCols}
@@ -81,23 +130,48 @@ export const App = () => {
             type="number"
           />
         </label>
-        <button type="submit">Отправить</button>
+        <button type="submit" disabled={isLoading}>
+          Отправить
+          {isLoading && (
+            <InfinityLoader
+              color="blue"
+              size="small"
+              className="form__button-loader"
+            />
+          )}
+        </button>
       </form>
-      {csvStatus === STATUSES.LOADING ? (
-        <p>Загрузка...</p>
-      ) : csvStatus === STATUSES.ERROR ? (
-        <h2 className="csv-error">Ошибка!!!</h2>
-      ) : null}
-      {csvData && (
-        <div className="csv-text-wrapper">
-          <button className="small" onClick={onCopyCsv}>
-            Скопировать
-          </button>
-          <textarea className="csv-text" readOnly>
-            {csvData}
-          </textarea>
-        </div>
-      )}
+      <div className="app-half">
+        {isError && (
+          <h2 className="csv-error">{statusMessage || "Ошибка!!!"}</h2>
+        )}
+        {isLoading && !!progressCsv && (
+          <>
+            <div className="loading-info">
+              {statusMessage
+                ? <><span>Идёт загрузка:</span> <span className="detail-info">{ statusMessage }</span></>
+                : "Идёт загрузка..."}
+            </div>
+            <CircularLoader
+              radius={60}
+              activeColor="red"
+              bgColor="blue"
+              stroke={4}
+              text={percentFormat(progressCsv)}
+              percent={progressCsv}
+            />
+          </>
+        )}
+        {csvData && (
+          <div className="csv-text-wrapper">
+            <h3 className="csv-text-title"> CSV файл: </h3>
+            <button className="small" onClick={onCopyCsv}>
+              Скопировать
+            </button>
+            <textarea className="csv-text" readOnly defaultValue={csvData} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

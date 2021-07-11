@@ -57,7 +57,6 @@
   "devDependencies": {
     "@types/d3-fetch": "^3.0.1",
     "@types/react-router-dom": "^5.1.8",
-    "sass": "^1.35.2",
-    "scss": "^0.2.4"
+    "sass": "^1.35.2"
   }
 }
