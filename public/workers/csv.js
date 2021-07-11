@@ -20,12 +20,12 @@ const transform = (data, size) => {
     for (let i = 0; i < size; i++) {
       categs.push(d[columns[i]]);
     }
-    const query = d[columns[size]].replace(bannedFirstRegex, "").trim();
+    const query = d[columns[size]].trim();
     const strForRegex = query.length <= 6 ? query : query.slice(0, -1).trim();
 
     map.set(query, {
       categs,
-      regex: RegExp(strForRegex.replace(" ", "(.)+"), "ig"),
+      regex: RegExp(strForRegex.replace(bannedFirstRegex, "").trim().replace(" ", "(.)+"), "ig"),
     });
   });
   return map;
