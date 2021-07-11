@@ -8,8 +8,11 @@ self.onmessage = async (e) => {
 };
 
 const banned = ["для", "около", "в", "по", "где", "на", "купить", "цена"];
+const bannedFirst = ["купить", "цена"]
+
 
 const transform = (data, size) => {
+  const bannedFirstRegex = RegExp(`(${bannedFirst.join("|")})`, "gi")
   const map = new Map();
   const { columns } = data;
   data.forEach((d) => {
@@ -17,8 +20,9 @@ const transform = (data, size) => {
     for (let i = 0; i < size; i++) {
       categs.push(d[columns[i]]);
     }
-    const query = d[columns[size]].trim();
+    const query = d[columns[size]].replace(bannedFirstRegex, "").trim();
     const strForRegex = query.length <= 6 ? query : query.slice(0, -1).trim();
+
     map.set(query, {
       categs,
       regex: RegExp(strForRegex.replace(" ", "(.)+"), "ig"),
@@ -84,7 +88,7 @@ const match = (data, map, updateProgressInfo) => {
     resultArray.push(item);
   };
   const key = data.columns[0];
-  data.forEach((item, i, arr) => {
+  data.forEach((item, i) => {
     updateProgressInfo(i, dataLength)
     const queryToCateg = item[key];
     for (let key of keys) {
