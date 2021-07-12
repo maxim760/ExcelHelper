@@ -3,11 +3,12 @@ self.onmessage = async (e) => {
     const {data, empty, total} = await getCsvData(e.data)
     postMessage({type: "csv", empty,total, message: data})
   } catch (e) {
+    console.log(e)
     postMessage({type: "error", message: `Ошибка при обработке csv файла`})
   }
 };
 
-const banned = ["для", "около", "в", "по", "где", "на", "купить", "цена"];
+const banned = ["для", "около", "в", "по","до",, "где", "на", "купить", "цена"];
 const bannedFirst = ["купить", "цена"]
 
 
@@ -21,11 +22,14 @@ const transform = (data, size) => {
       categs.push(d[columns[i]]);
     }
     const query = d[columns[size]].trim();
+    if (!query) {
+      return
+    }
     const strForRegex = query.length <= 6 ? query : query.slice(0, -1).trim();
 
     map.set(query, {
       categs,
-      regex: RegExp(strForRegex.replace(bannedFirstRegex, "").trim().replace(" ", "(.)+"), "ig"),
+      regex: RegExp(strForRegex.replace(bannedFirstRegex, "").trim().replace(/\s+/gi, "(.)+"), "ig"),
     });
   });
   return map;
@@ -46,6 +50,7 @@ const toFilteredWords = (str) =>
 const checkMatching = ({ wordForMatching, phrase }) => {
   const words1 = toFilteredWords(wordForMatching);
   const words2 = toFilteredWords(phrase);
+
   const [minArray, maxArray] =
     words1.length > words2.length ? [words2, words1] : [words1, words2];
   const div = maxArray.length / minArray.length;

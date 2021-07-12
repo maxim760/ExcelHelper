@@ -1,3 +1,5 @@
+@import "../../assets/styles/constants.scss";
+
 .sk-chase {
   position: relative;
   animation: sk-chase 2.5s infinite linear both;
@@ -36,7 +38,7 @@
     background-color: rgb(252, 126, 24);
   }
   .sk-chase.blue & {
-    background-color: #007bff;
+    background-color: $blue;
   }
   .sk-chase.white & {
     background-color: white;

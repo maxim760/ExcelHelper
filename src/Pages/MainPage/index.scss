@@ -1,0 +1,19 @@
+@import "../../assets/styles/constants.scss";
+
+.app {
+  display: flex;
+  justify-content: space-evenly;
+  margin-top: 25px;
+}
+
+.app-half {
+  padding: 10px 30px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.button-loader {
+  margin-left: 10px;
+}

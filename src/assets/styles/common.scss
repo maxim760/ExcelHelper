@@ -1,0 +1,38 @@
+@import "./constants.scss";
+
+.button {
+  min-width: 120px;
+  min-height: 45px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  border: 1px solid $blue;
+  background-color: transparent;
+  color: $blue;
+  border-radius: 0.9rem;
+  transition: all 0.2s ease-in;
+  transition-property: box-shadow, background-color, color;
+}
+.button:not(:disabled):hover {
+  color: white;
+  background-color: $blue;
+}
+.button:active {
+  box-shadow: -2px -2px 5px rgba($blue, 0.3),
+    -2px 2px 5px rgba($blue, 0.3), 2px -2px 5px rgba($blue, 0.3),
+    2px 2px 5px rgba($blue, 0.3);
+}
+
+.button.small {
+  padding: 0.2rem 0.3rem;
+  font-size: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0.4rem;
+}
+.button:disabled {
+  cursor: not-allowed;
+}

@@ -1,0 +1,111 @@
+@import "../../assets/styles/constants.scss";
+
+$animation-time: 0.25s;
+$animation-fn: ease-in;
+
+.about__list-item {
+  width: 100%;
+  position: relative;
+  & + & {
+    margin-top: 25px;
+  }
+}
+
+.about__list-item button {
+  margin: 0 auto;
+  background-color: transparent;
+  z-index: 10;
+  width: 100%;
+  position: relative;
+  font-size: 1.75rem;
+  padding: 5px 25px;
+  border-radius: 10px;
+  border: 1px solid $blue;
+  & + & {
+    margin-top: 25px;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-25%);
+    right: 40px;
+    border: 0.6em solid transparent;
+    border-top: 0.6em solid green;
+    transition: transform $animation-time $animation-fn;
+  }
+}
+
+.about__list-item li {
+
+  font-size: 1.2em;
+  &:last-of-type {
+    margin-bottom: 25px;
+  }
+  &:first-of-type {
+    margin-top: 10px;
+  }
+  &:not(:first-of-type) {
+    margin-top: 4px;
+  }
+}
+
+.about__list-item ul {
+  margin-left: 30px;
+  z-index: 1;
+  animation: to-bottom $animation-time $animation-fn both
+}
+@keyframes to-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(-90%);
+  } to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.about__list-item.active button {
+  &::after {
+    content: "";
+    position: absolute;
+    transform: translateY(-75%) rotate(180deg);
+  }
+}
+
+.about__images-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+  margin-top: 10;
+}
+.about__image {
+  display: inline;
+  &.center {
+    text-align: center;
+  }
+}
+
+.about__plus {
+  font-size: 12em;
+  color: blue;
+  user-select: none;
+  writing-mode: vertical-lr;
+  margin-right: -0.3em;
+}
+
+.about__equal {
+  font-size: 12em;
+  user-select: none;
+  color: blue;
+  text-align: center;
+  margin-top: -0.5em;
+  margin-bottom: -0.25em;
+}
+
+.about__result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -6,12 +6,14 @@ type IStatus = {
   message?: string
 }
 
+export type ISetStatusFn = (status: STATUSES, message?: string | undefined) => void
+export type IUpdateStatusMsgFn = (message: string) => void
 export const useStatus = (defaultStatus = STATUSES.NONE) => {
   const [status, setStatus] = useState<IStatus>({status: defaultStatus});
-  const setNewStatus = useCallback((status: STATUSES, message?: string) => {
+  const setNewStatus: ISetStatusFn = useCallback((status: STATUSES, message?: string) => {
     setStatus({status, message})
   },[setStatus])
-  const updateMessage = useCallback((message: string) => {
+  const updateMessage: IUpdateStatusMsgFn = useCallback((message: string) => {
     setStatus(prev => ({...prev, message}))
   }, [setStatus])
   return {
